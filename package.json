@@ -1,0 +1,51 @@
+{
+  "name": "figma-plugins-workspace",
+  "version": "1.0.0",
+  "description": "Figma插件开发通用工程",
+  "main": "index.js",
+  "scripts": {
+    "build": "npm run build:fill-content",
+    "build:all": "npm run build:fill-content",
+    "build:fill-content": "tsc -p plugins/fill-content-from-json/tsconfig.json",
+    "watch": "npm run watch:fill-content",
+    "watch:all": "concurrently \"npm run watch:fill-content\"",
+    "watch:fill-content": "tsc -p plugins/fill-content-from-json/tsconfig.json --watch",
+    "lint": "eslint --ext .ts,.tsx --ignore-pattern node_modules .",
+    "lint:fix": "eslint --ext .ts,.tsx --ignore-pattern node_modules --fix .",
+    "clean": "find plugins -name '*.js' -type f -delete"
+  },
+  "keywords": ["figma", "plugin", "typescript"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@figma/eslint-plugin-figma-plugins": "*",
+    "@figma/plugin-typings": "*",
+    "@typescript-eslint/eslint-plugin": "^6.12.0",
+    "@typescript-eslint/parser": "^6.12.0",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.54.0",
+    "typescript": "^5.3.2"
+  },
+  "eslintConfig": {
+    "extends": [
+      "eslint:recommended",
+      "plugin:@typescript-eslint/recommended",
+      "plugin:@figma/figma-plugins/recommended"
+    ],
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+      "project": "./tsconfig.json"
+    },
+    "root": true,
+    "rules": {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          "argsIgnorePattern": "^_",
+          "varsIgnorePattern": "^_",
+          "caughtErrorsIgnorePattern": "^_"
+        }
+      ]
+    }
+  }
+}

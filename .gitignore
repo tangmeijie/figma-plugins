@@ -1,0 +1,19 @@
+# Node
+*.log
+*.log.*
+node_modules
+
+# Build outputs
+out/
+dist/
+
+# Compiled plugin files
+plugins/**/code.js
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

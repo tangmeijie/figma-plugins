@@ -1,0 +1,14 @@
+{
+  "name": "Fill Content from JSON",
+  "id": "fill-content-from-json",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "permissions": ["currentuser"],
+  "networkAccess": {
+    "allowedDomains": ["none"]
+  },
+  "documentAccess": "dynamic-page",
+  "relaunchButtons": []
+}
