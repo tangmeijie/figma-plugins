@@ -10,13 +10,14 @@
 │   │   ├── code.js          # 编译后的主代码
 │   │   ├── code.ts          # TypeScript源代码
 │   │   ├── ui.html          # 插件UI界面
-│   │   └── manifest.json    # 插件配置文件
+│   │   ├── manifest.json    # 插件配置文件
+│   │   └── tsconfig.json    # 插件TypeScript编译配置
 │   └── [其他插件]/           # 未来的其他插件
 ├── shared/                  # 共享代码库
 │   ├── types/              # 共享类型定义
 │   └── utils/              # 共享工具函数
 ├── package.json            # 项目依赖配置
-├── tsconfig.json           # TypeScript编译配置
+├── tsconfig.json           # 根目录TypeScript编译配置
 └── README.md              # 项目说明
 ```
 
