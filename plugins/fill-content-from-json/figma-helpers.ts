@@ -1,6 +1,33 @@
-// Figma插件通用工具函数
+// Figma插件通用工具函数和类型定义
 
-import { TextNodeWithPath } from '../types/figma';
+// ============= 类型定义 =============
+export interface PluginMessage {
+  type: string;
+  [key: string]: any;
+}
+
+export interface TextNodeWithPath {
+  node: TextNode;
+  path: SceneNode[];
+}
+
+export interface JsonData {
+  [key: string]: any;
+}
+
+// UI相关类型
+export interface UIMessageBase {
+  type: string;
+}
+
+export interface FillContentMessage extends UIMessageBase {
+  type: 'fill-content';
+  jsonData: JsonData;
+}
+
+export type UIMessage = FillContentMessage; 
+
+// ============= 工具函数 =============
 
 /**
  * 递归查找节点中的所有文本节点

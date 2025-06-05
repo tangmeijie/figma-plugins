@@ -7,13 +7,14 @@
 // You can access browser APIs in the <script> tag inside "ui.html" which has a
 // full browser environment (See https://www.figma.com/plugin-docs/how-plugins-run).
 
-import { JsonData, UIMessage } from '../../shared/types/figma';
 import { 
+  JsonData, 
+  UIMessage,
   findAllTextNodesWithPath as findAllTextNodesWithPathUtil, 
   showNotification, 
   getSelectedNodes, 
   hasSelection 
-} from '../../shared/utils/figma-helpers';
+} from './figma-helpers';
 
 // 显示插件UI
 figma.showUI(__html__, { width: 300, height: 320 });
@@ -187,4 +188,6 @@ async function loadFontsAndUpdateText(
   for (const {node, value} of textNodesWithValues) {
     node.characters = value;
   }
+  
+  return;
 }

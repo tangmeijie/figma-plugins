@@ -1,11 +1,12 @@
 "use strict";
-// Figma插件通用工具函数
+// Figma插件通用工具函数和类型定义
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.findAllTextNodesInNode = findAllTextNodesInNode;
 exports.findAllTextNodesWithPath = findAllTextNodesWithPath;
 exports.showNotification = showNotification;
 exports.getSelectedNodes = getSelectedNodes;
 exports.hasSelection = hasSelection;
+// ============= 工具函数 =============
 /**
  * 递归查找节点中的所有文本节点
  */

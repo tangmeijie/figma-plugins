@@ -6,148 +6,207 @@
 
 ```
 ├── plugins/                 # 插件目录
-│   ├── fill-content-from-json/  # 填充JSON内容插件
-│   │   ├── code.js          # 编译后的主代码
-│   │   ├── code.ts          # TypeScript源代码
-│   │   ├── ui.html          # 插件UI界面
-│   │   ├── manifest.json    # 插件配置文件
-│   │   └── tsconfig.json    # 插件TypeScript编译配置
-│   └── [其他插件]/           # 未来的其他插件
-├── shared/                  # 共享代码库
-│   ├── types/              # 共享类型定义
-│   └── utils/              # 共享工具函数
+│   └── fill-content-from-json/  # 填充JSON内容插件
+│       ├── code.ts          # TypeScript源代码
+│       ├── code.js          # 编译后的主代码文件 (构建生成)
+│       ├── figma-helpers.ts # 工具函数和类型定义
+│       ├── figma-helpers.js # 编译后的工具函数 (构建生成)
+│       ├── ui.html          # 插件UI界面
+│       ├── manifest.json    # 插件配置文件
+│       └── tsconfig.json    # TypeScript编译配置
 ├── package.json            # 项目依赖配置
-├── tsconfig.json           # 根目录TypeScript编译配置
+├── package-lock.json       # 依赖锁定文件
+├── .gitignore             # Git忽略规则
 └── README.md              # 项目说明
 ```
 
-## 快速开始
+## 🚀 快速开始
 
 ### 环境要求
 
-1. 安装 Node.js: https://nodejs.org/
-2. 安装依赖:
+1. **安装 Node.js**: https://nodejs.org/ (推荐 LTS 版本)
+2. **安装依赖**:
    ```bash
    npm install
    ```
 
-## 🚀 开发模式说明
+### 首次使用
 
-### 基础构建
+⚠️ **重要**: 插件使用TypeScript编写，必须先构建才能在Figma中使用！
+
 ```bash
-npm run build           # 完整构建（推荐生产环境）
-npm run build:fill-content  # 完整构建（包含依赖编译和清理）
+# 1. 构建插件
+npm run build
+
+# 2. 验证构建结果 - 确保生成了 code.js 文件
+ls plugins/fill-content-from-json/code.js
 ```
 
-### 开发模式选择
+构建成功后，您将看到 `plugins/fill-content-from-json/` 目录下生成了 `code.js` 和 `figma-helpers.js` 文件。
 
-#### 1. 🎯 智能开发模式（推荐）
+## 🔧 开发模式
+
+### 构建命令
 ```bash
+# 一次性构建插件
+npm run build
+
+# 开发模式（监听文件变化，自动编译）
 npm run dev
-```
-**适用场景**: 日常开发时使用
-**功能**: 
-- 同时监听共享文件(`shared/`)和插件代码(`code.ts`)变化
-- 自动重新编译
-- **注意**: 仍需手动清理重复文件夹
 
-#### 2. 🔧 仅插件监听模式
-```bash
-npm run watch:fill-content
-```
-**适用场景**: 只修改插件代码，不修改共享文件时
-**功能**: 
-- 仅监听插件代码变化
-- 不会重新编译共享依赖
-
-#### 3. 🛠 手动构建模式
-```bash
-npm run build:plugin-only
-```
-**适用场景**: 精确控制构建时机
-**功能**: 
-- 只编译插件代码
-- 自动清理重复文件夹
-
-## 📋 开发流程建议
-
-### 方案一：完全自动化（适合频繁开发）
-1. 启动开发模式: `npm run dev`
-2. 修改代码（自动重新编译）
-3. 测试插件时手动运行: `npm run build:plugin-only`（清理重复文件夹）
-
-### 方案二：半自动化（平衡性能和体验）
-1. 首次构建: `npm run build`
-2. 只修改插件代码时: `npm run watch:fill-content`
-3. 修改共享文件时: 重新运行 `npm run build`
-
-### 方案三：手动控制（适合偶尔开发）
-1. 每次修改后运行: `npm run build`
-2. 完全的构建控制，但需要手动操作
-
-## 🔄 清理重复文件夹
-
-如果发现插件目录下出现重复的 `shared` 或 `plugins` 文件夹：
-```bash
-npm run build:plugin-only  # 自动清理
-# 或手动清理
-rm -rf plugins/fill-content-from-json/shared plugins/fill-content-from-json/plugins
-```
-
-## 💡 开发提示
-
-- **共享文件修改**: 需要重新构建整个项目(`npm run build`)
-- **插件代码修改**: 可以使用监听模式快速编译
-- **测试前**: 建议运行 `npm run build:plugin-only` 确保目录清洁
-- **出现编译错误**: 先尝试 `npm run build` 重新构建所有依赖
-
-## 🧪 代码检查
-
-```bash
-npm run lint        # 代码检查
-npm run lint:fix    # 自动修复代码风格问题
+# 或者使用监听模式
+npm run watch
 ```
 
 ### 在Figma中添加插件
 
-#### 方法一：添加本地插件
+插件运行需要以下**必需文件**在同一目录：
+- ✅ `manifest.json` - 插件配置文件
+- ✅ `code.js` - 编译后的主代码文件
+- ✅ `ui.html` - 插件UI界面文件（如果有UI）
+
+#### 方法一：Figma桌面应用
 1. 打开Figma桌面应用
 2. 点击菜单 **Plugins** → **Development** → **Import plugin from manifest...**
-3. 选择插件文件夹中的 `manifest.json` 文件（例如：`plugins/fill-content-from-json/manifest.json`）
+3. 选择文件：`plugins/fill-content-from-json/manifest.json`
+4. 插件将出现在插件列表中
 
-#### 方法二：通过Figma网页版
+#### 方法二：Figma网页版
 1. 登录 https://figma.com
 2. 打开任意设计文件
 3. 右键点击空白处 → **Plugins** → **Development** → **Import plugin from manifest...**
-4. 选择对应的 `manifest.json` 文件
+4. 选择文件：`plugins/fill-content-from-json/manifest.json`
 
-### 插件运行所需文件
+#### 🔄 重新加载插件 (重要!)
+**每次修改代码后，需要在Figma中重新加载插件：**
+1. 右键点击画布 → **Plugins** → **Development** → **Hot reload plugin**
+2. 或者重新导入manifest.json文件
 
-对于每个插件，Figma需要以下文件在同一目录下：
-- `manifest.json` - 插件配置文件（必需）
-- `code.js` - 编译后的主代码文件（必需）
-- `ui.html` - 插件UI界面文件（如果插件有UI界面）
-
-## 已有插件
+## 📦 已有插件
 
 ### fill-content-from-json
-根据JSON数据填充Figma文本图层的插件。
+根据JSON数据自动填充Figma文本图层的插件。
 
-**功能特性：**
-- 支持JSON文件导入
-- 智能匹配图层名称与JSON键
-- 支持嵌套JSON结构
-- 支持任意深度的文本图层
+**🎯 功能特性：**
+- 📁 支持JSON文件导入
+- 🎯 智能匹配图层名称与JSON键
+- 🌲 支持嵌套JSON结构
+- 📝 支持任意深度的文本图层批量填充
 
-**使用方法：**
-1. 选择要填充的Frame
-2. 运行插件
-3. 选择JSON文件
-4. 点击"填充内容"
+**📂 文件结构：**
+- `code.ts` - 主插件逻辑 (源码)
+- `code.js` - 编译后的主逻辑 (构建生成)
+- `figma-helpers.ts` - Figma API工具函数和类型定义 (源码)
+- `figma-helpers.js` - 编译后的工具函数 (构建生成)
+- `ui.html` - 用户界面
+- `manifest.json` - 插件配置
 
-## 开发新插件
+**📖 使用方法：**
+1. 在Figma中选择要填充的Frame或组件
+2. 运行插件 (Plugins → Development → Fill Content from JSON)
+3. 在插件界面中选择JSON文件
+4. 点击"填充内容"按钮
+5. 插件会自动匹配图层名称与JSON数据进行填充
 
-1. 在 `plugins/` 目录下创建新的插件文件夹
-2. 创建必需的文件：`manifest.json`、`code.ts`、`ui.html`（可选）
-3. 在根目录运行 `npm run build` 编译TypeScript
-4. 在Figma中导入新插件的 `manifest.json`
+**⚙️ 开发流程：**
+1. 修改 TypeScript 代码（`code.ts`, `figma-helpers.ts`）
+2. 运行 `npm run build` 编译生成最新的 `code.js`
+3. 在Figma中重新加载插件测试效果
+
+## 🆕 开发新插件
+
+### 创建新插件步骤
+1. **创建插件目录**:
+   ```bash
+   mkdir plugins/your-plugin-name
+   cd plugins/your-plugin-name
+   ```
+
+2. **创建必需文件**:
+   - `manifest.json` - 插件配置 (参考现有插件)
+   - `code.ts` - TypeScript源代码
+   - `ui.html` - UI界面 (可选)
+   - `tsconfig.json` - TypeScript配置 (复制现有配置)
+
+3. **更新构建配置**:
+   由于当前 `package.json` 中的构建命令只针对 `fill-content-from-json`，您需要：
+   
+   **选项A**: 修改 `package.json` 添加新插件的构建脚本
+   **选项B**: 手动构建新插件:
+   ```bash
+   # 在插件目录下手动编译
+   npx tsc -p plugins/your-plugin-name/tsconfig.json
+   ```
+
+4. **在Figma中测试**:
+   导入新插件的 `manifest.json` 文件
+
+### 插件基本结构模板
+
+**manifest.json 模板**:
+```json
+{
+  "name": "Your Plugin Name",
+  "id": "your-plugin-id",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "permissions": ["currentuser"],
+  "networkAccess": {
+    "allowedDomains": ["none"]
+  },
+  "documentAccess": "dynamic-page"
+}
+```
+
+## 🛠️ 故障排除
+
+### 常见问题及解决方案
+
+**❌ 问题：插件无法加载**
+- ✅ 解决：确保运行了 `npm run build` 生成 `code.js` 文件
+- ✅ 检查：`manifest.json` 中的 `main` 字段指向正确的 `.js` 文件
+
+**❌ 问题：代码修改后没有生效**
+- ✅ 解决：重新构建插件 (`npm run build`)
+- ✅ 解决：在Figma中重新加载插件 (Hot reload plugin)
+
+**❌ 问题：TypeScript编译错误**
+- ✅ 检查：`tsconfig.json` 配置是否正确
+- ✅ 检查：是否安装了所需的类型定义 (`@figma/plugin-typings`)
+
+**❌ 问题：插件在Figma中找不到**
+- ✅ 确保：选择了正确的 `manifest.json` 文件路径
+- ✅ 确保：`code.js` 和 `manifest.json` 在同一目录
+
+### 调试技巧
+- 📝 在Figma中按 `F12` 打开开发者工具查看控制台错误
+- 🔍 使用 `console.log()` 在插件代码中添加调试信息
+- 🧪 使用 `npm run lint` 检查代码语法问题
+
+## 💡 开发提示
+
+### 📋 开发最佳实践
+- **代码修改后**: 始终运行 `npm run build` 重新编译
+- **开发模式**: 使用 `npm run dev` 或 `npm run watch` 自动监听文件变化
+- **测试前**: 确保编译生成了最新的 `code.js` 文件
+- **插件重载**: 每次修改后在Figma中重新加载插件
+- **代码检查**: 定期使用 `npm run lint` 检查代码规范
+- **自动修复**: 使用 `npm run lint:fix` 自动修复代码格式问题
+- **清理文件**: 使用 `npm run clean` 删除所有编译生成的 `.js` 文件
+
+### 🚀 效率提升
+- 📁 保持项目结构整洁，遵循现有的文件组织方式
+- 🔄 开发时启用 watch 模式，减少手动构建次数
+- 📊 利用Figma的开发者工具进行调试
+- 📚 参考 [Figma Plugin API 文档](https://www.figma.com/plugin-docs/) 获取最新信息
+
+### 🎯 性能优化
+- ⚡ 避免在插件中进行大量DOM操作
+- 🎨 合理使用Figma API，避免不必要的节点遍历
+- 💾 缓存重复计算的结果
+
+---
+
+🎉 **开始您的Figma插件开发之旅吧！** 如有问题，请查看故障排除章节或参考Figma官方文档。

@@ -5,14 +5,10 @@
   "main": "index.js",
   "scripts": {
     "build": "npm run build:fill-content",
-    "build:all": "npm run build:fill-content",
-    "build:fill-content": "npx tsc && tsc -p plugins/fill-content-from-json/tsconfig.json && rm -rf plugins/fill-content-from-json/shared plugins/fill-content-from-json/plugins",
-    "watch": "npm run watch:fill-content",
-    "watch:all": "concurrently \"npm run watch:fill-content\"",
+    "build:fill-content": "tsc -p plugins/fill-content-from-json/tsconfig.json",
+    "dev": "npm run watch:fill-content",
+    "watch": "npm run watch:fill-content", 
     "watch:fill-content": "tsc -p plugins/fill-content-from-json/tsconfig.json --watch",
-    "dev": "concurrently \"npx tsc --watch\" \"npm run watch:plugin-only\"",
-    "watch:plugin-only": "tsc -p plugins/fill-content-from-json/tsconfig.json --watch",
-    "build:plugin-only": "tsc -p plugins/fill-content-from-json/tsconfig.json && rm -rf plugins/fill-content-from-json/shared plugins/fill-content-from-json/plugins",
     "lint": "eslint --ext .ts,.tsx --ignore-pattern node_modules .",
     "lint:fix": "eslint --ext .ts,.tsx --ignore-pattern node_modules --fix .",
     "clean": "find plugins -name '*.js' -type f -delete"
