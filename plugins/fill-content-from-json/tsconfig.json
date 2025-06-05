@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2020",
     "lib": ["ES2020", "DOM"],
-    "module": "CommonJS",
+    "module": "ES2015",
     "outDir": "./",
     "strict": true,
     "esModuleInterop": true,

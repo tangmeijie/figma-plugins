@@ -7,10 +7,8 @@
 ```
 ├── plugins/                 # 插件目录
 │   └── fill-content-from-json/  # 填充JSON内容插件
-│       ├── code.ts          # TypeScript源代码
+│       ├── code.ts          # TypeScript源代码（包含所有功能）
 │       ├── code.js          # 编译后的主代码文件 (构建生成)
-│       ├── figma-helpers.ts # 工具函数和类型定义
-│       ├── figma-helpers.js # 编译后的工具函数 (构建生成)
 │       ├── ui.html          # 插件UI界面
 │       ├── manifest.json    # 插件配置文件
 │       └── tsconfig.json    # TypeScript编译配置
@@ -42,7 +40,7 @@ npm run build
 ls plugins/fill-content-from-json/code.js
 ```
 
-构建成功后，您将看到 `plugins/fill-content-from-json/` 目录下生成了 `code.js` 和 `figma-helpers.js` 文件。
+构建成功后，您将看到 `plugins/fill-content-from-json/` 目录下生成了 `code.js` 文件。
 
 ## 🔧 开发模式
 
@@ -84,34 +82,7 @@ npm run watch
 
 ## 📦 已有插件
 
-### fill-content-from-json
-根据JSON数据自动填充Figma文本图层的插件。
-
-**🎯 功能特性：**
-- 📁 支持JSON文件导入
-- 🎯 智能匹配图层名称与JSON键
-- 🌲 支持嵌套JSON结构
-- 📝 支持任意深度的文本图层批量填充
-
-**📂 文件结构：**
-- `code.ts` - 主插件逻辑 (源码)
-- `code.js` - 编译后的主逻辑 (构建生成)
-- `figma-helpers.ts` - Figma API工具函数和类型定义 (源码)
-- `figma-helpers.js` - 编译后的工具函数 (构建生成)
-- `ui.html` - 用户界面
-- `manifest.json` - 插件配置
-
-**📖 使用方法：**
-1. 在Figma中选择要填充的Frame或组件
-2. 运行插件 (Plugins → Development → Fill Content from JSON)
-3. 在插件界面中选择JSON文件
-4. 点击"填充内容"按钮
-5. 插件会自动匹配图层名称与JSON数据进行填充
-
-**⚙️ 开发流程：**
-1. 修改 TypeScript 代码（`code.ts`, `figma-helpers.ts`）
-2. 运行 `npm run build` 编译生成最新的 `code.js`
-3. 在Figma中重新加载插件测试效果
+- **Fill Content from JSON** - 从JSON数据自动填充Figma文本图层，支持嵌套结构和智能匹配
 
 ## 🆕 开发新插件
 
@@ -194,7 +165,7 @@ npm run watch
 - **插件重载**: 每次修改后在Figma中重新加载插件
 - **代码检查**: 定期使用 `npm run lint` 检查代码规范
 - **自动修复**: 使用 `npm run lint:fix` 自动修复代码格式问题
-- **清理文件**: 使用 `npm run clean` 删除所有编译生成的 `.js` 文件
+- **清理文件**: 使用 `npm run clean` 删除编译生成的 `code.js` 文件
 
 ### 🚀 效率提升
 - 📁 保持项目结构整洁，遵循现有的文件组织方式

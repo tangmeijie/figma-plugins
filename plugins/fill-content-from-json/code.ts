@@ -7,14 +7,93 @@
 // You can access browser APIs in the <script> tag inside "ui.html" which has a
 // full browser environment (See https://www.figma.com/plugin-docs/how-plugins-run).
 
-import { 
-  JsonData, 
-  UIMessage,
-  findAllTextNodesWithPath as findAllTextNodesWithPathUtil, 
-  showNotification, 
-  getSelectedNodes, 
-  hasSelection 
-} from './figma-helpers';
+// ============= 类型定义 =============
+interface PluginMessage {
+  type: string;
+  [key: string]: any;
+}
+
+interface TextNodeWithPath {
+  node: TextNode;
+  path: SceneNode[];
+}
+
+interface JsonData {
+  [key: string]: any;
+}
+
+// UI相关类型
+interface UIMessageBase {
+  type: string;
+}
+
+interface FillContentMessage extends UIMessageBase {
+  type: 'fill-content';
+  jsonData: JsonData;
+}
+
+type UIMessage = FillContentMessage; 
+
+// ============= 工具函数 =============
+
+/**
+ * 递归查找节点中的所有文本节点
+ */
+function findAllTextNodesInNode(node: SceneNode): TextNode[] {
+  const textNodes: TextNode[] = [];
+  
+  if (node.type === 'TEXT') {
+    textNodes.push(node);
+  } else if ('children' in node) {
+    for (const child of node.children) {
+      textNodes.push(...findAllTextNodesInNode(child));
+    }
+  }
+  
+  return textNodes;
+}
+
+/**
+ * 递归查找所有文本节点及其完整路径
+ */
+function findAllTextNodesWithPath(
+  node: SceneNode, 
+  path: SceneNode[] = []
+): TextNodeWithPath[] {
+  const results: TextNodeWithPath[] = [];
+  const currentPath = [...path, node];
+  
+  if (node.type === 'TEXT') {
+    results.push({ node: node, path: currentPath });
+  } else if ('children' in node) {
+    for (const child of node.children) {
+      results.push(...findAllTextNodesWithPath(child, currentPath));
+    }
+  }
+  
+  return results;
+}
+
+/**
+ * 显示通知消息
+ */
+function showNotification(message: string): void {
+  figma.notify(message);
+}
+
+/**
+ * 获取选中的节点
+ */
+function getSelectedNodes(): readonly SceneNode[] {
+  return figma.currentPage.selection;
+}
+
+/**
+ * 检查是否有选中的节点
+ */
+function hasSelection(): boolean {
+  return figma.currentPage.selection.length > 0;
+}
 
 // 显示插件UI
 figma.showUI(__html__, { width: 300, height: 320 });
@@ -89,7 +168,7 @@ function processNode(node: SceneNode, data: JsonData): {
   const frameData = data[frameName];
   
   // 查找所有文本节点及其路径
-  const textNodesWithPaths = findAllTextNodesWithPathUtil(node);
+  const textNodesWithPaths = findAllTextNodesWithPath(node);
   
   for (const {node: textNode, path} of textNodesWithPaths) {
     const jsonValue = findJsonValueForTextNode(textNode, path, frameData, data);
