@@ -12,11 +12,11 @@
     "typeRoots": ["node_modules/@types", "node_modules/@figma"]
   },
   "include": [
-    "shared/**/*",
-    "plugins/**/code.ts"
+    "shared/**/*"
   ],
   "exclude": [
     "node_modules",
-    "**/*.js"
+    "**/*.js",
+    "plugins/**/*"
   ]
 } 
