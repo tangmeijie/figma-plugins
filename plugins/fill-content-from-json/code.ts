@@ -215,6 +215,101 @@ function collectSameNameTextNodes(allTextNodes: TextNodeWithPath[], targetName: 
 }
 
 /**
+ * 查找重复的容器节点（如多个Content）并为其分配索引
+ * 这个函数解决了数组填充的核心问题：
+ * 当有多个同名容器（如Content1, Content2...）时，
+ * 按照它们在Figma文档中的顺序为其分配对应的JSON数组索引
+ */
+function findRepeatingContainers(textNodesWithPaths: TextNodeWithPath[]): Map<SceneNode, number> {
+  const containerIndexMap = new Map<SceneNode, number>();
+  const containerNameCounts = new Map<string, SceneNode[]>();
+  
+  // 收集所有路径中的容器节点
+  for (const {path} of textNodesWithPaths) {
+    for (let i = 0; i < path.length - 1; i++) { // 排除文本节点本身
+      const container = path[i];
+      const containerName = container.name;
+      
+      if (!containerNameCounts.has(containerName)) {
+        containerNameCounts.set(containerName, []);
+      }
+      
+      const existingContainers = containerNameCounts.get(containerName)!;
+      if (!existingContainers.includes(container)) {
+        existingContainers.push(container);
+      }
+    }
+  }
+  
+  // 为重复的容器分配索引
+  for (const [containerName, containers] of containerNameCounts) {
+    if (containers.length > 1) {
+      // 按照容器在文档中的顺序排序
+      containers.sort((a, b) => {
+        // 如果有共同的父节点，比较它们在父节点children中的位置
+        if (a.parent && b.parent && a.parent === b.parent && 'children' in a.parent) {
+          const children = a.parent.children;
+          return children.indexOf(a) - children.indexOf(b);
+        }
+        
+        // 如果没有共同父节点，通过遍历到根节点来比较位置
+        const getDocumentPath = (node: SceneNode): SceneNode[] => {
+          const path = [node];
+          let current = node.parent;
+          while (current && 'parent' in current && current.type !== 'PAGE') {
+            if ('type' in current) {
+              path.unshift(current as SceneNode);
+            }
+            current = current.parent;
+          }
+          return path;
+        };
+        
+        const pathA = getDocumentPath(a);
+        const pathB = getDocumentPath(b);
+        
+        // 找到第一个不同的节点并比较其位置
+        for (let i = 0; i < Math.min(pathA.length, pathB.length); i++) {
+          if (pathA[i] !== pathB[i]) {
+            const parent = i > 0 ? pathA[i - 1] : null;
+            if (parent && 'children' in parent) {
+              const children = parent.children;
+              return children.indexOf(pathA[i]) - children.indexOf(pathB[i]);
+            }
+          }
+        }
+        
+        return 0;
+      });
+      
+      // 分配索引
+      containers.forEach((container, index) => {
+        containerIndexMap.set(container, index);
+      });
+    }
+  }
+  
+  return containerIndexMap;
+}
+
+/**
+ * 获取文本节点对应的容器索引
+ */
+function getContainerIndexForTextNode(
+  path: SceneNode[], 
+  containerIndexMap: Map<SceneNode, number>
+): number | null {
+  // 从路径的倒数第二个开始向前查找（倒数第一个是文本节点本身）
+  for (let i = path.length - 2; i >= 0; i--) {
+    const container = path[i];
+    if (containerIndexMap.has(container)) {
+      return containerIndexMap.get(container)!;
+    }
+  }
+  return null;
+}
+
+/**
  * 处理单个节点，查找匹配的JSON数据
  */
 function processNode(node: SceneNode, data: JsonData): {
@@ -225,38 +320,54 @@ function processNode(node: SceneNode, data: JsonData): {
   // 查找所有文本节点及其路径
   const textNodesWithPaths = findAllTextNodesWithPath(node);
   
-  // 创建一个用于跟踪已处理的同名节点的Map
+  // 识别重复的容器并分配索引
+  const containerIndexMap = findRepeatingContainers(textNodesWithPaths);
+  
+
+  // 创建一个用于跟踪已处理的同名节点的Map（用于非数组情况）
   const processedSameNameNodes = new Map<string, number>();
   
   for (const {node: textNode, path} of textNodesWithPaths) {
     const layerName = textNode.name;
     
-    // 为每个文本节点尝试多种匹配策略
-    const jsonValue = findJsonValueForTextNodeAdvanced(textNode, path, data);
-    
-    if (jsonValue !== null) {
-      // 检查是否为数组类型
-      if (Array.isArray(jsonValue)) {
-        // 收集同名的文本节点
-        const sameNameNodes = collectSameNameTextNodes(textNodesWithPaths, layerName);
+            // 为每个文本节点尝试多种匹配策略
+        const jsonValue = findJsonValueForTextNodeAdvanced(textNode, path, data);
         
-        // 获取当前节点在同名节点中的索引
-        if (!processedSameNameNodes.has(layerName)) {
-          processedSameNameNodes.set(layerName, 0);
+
+        if (jsonValue !== null) {
+          // 检查是否为数组类型
+          if (Array.isArray(jsonValue)) {
+                    // 优先使用容器索引策略
+            const containerIndex = getContainerIndexForTextNode(path, containerIndexMap);
+            
+
+            if (containerIndex !== null && containerIndex < jsonValue.length) {
+                        // 使用容器索引从数组中获取对应的对象
+              const arrayItem = jsonValue[containerIndex];
+              
+              if (arrayItem && typeof arrayItem === 'object' && layerName in arrayItem) {
+                textNodesWithValues.push({
+                  node: textNode, 
+                  value: String(arrayItem[layerName])
+                });
+              }
+        } else {
+          // 降级到原有的同名节点处理方式
+          if (!processedSameNameNodes.has(layerName)) {
+            processedSameNameNodes.set(layerName, 0);
+          }
+          
+          const nodeIndex = processedSameNameNodes.get(layerName)!;
+          
+          if (nodeIndex < jsonValue.length) {
+            textNodesWithValues.push({
+              node: textNode, 
+              value: String(jsonValue[nodeIndex])
+            });
+          }
+          
+          processedSameNameNodes.set(layerName, nodeIndex + 1);
         }
-        
-        const nodeIndex = processedSameNameNodes.get(layerName)!;
-        
-        // 如果数组中有对应索引的值，则使用该值
-        if (nodeIndex < jsonValue.length) {
-          textNodesWithValues.push({
-            node: textNode, 
-            value: String(jsonValue[nodeIndex])
-          });
-        }
-        
-        // 增加已处理的同名节点计数
-        processedSameNameNodes.set(layerName, nodeIndex + 1);
       } else {
         // 非数组类型，直接使用值
         textNodesWithValues.push({node: textNode, value: String(jsonValue)});
@@ -277,21 +388,28 @@ function findJsonValueForTextNodeAdvanced(
 ): any {
   const layerName = textNode.name;
   
-  // 策略1: 在整个JSON中递归查找Frame名称，然后在该Frame数据中查找图层名称
+  // 策略1: 在整个JSON中递归查找Frame名称，然后处理对应数据
   for (let i = 1; i < path.length; i++) {  // 跳过第一个元素（根节点）
     const frameName = path[i].name;
     const frameData = findKeyInNestedJson(rootData, frameName);
     
-    if (frameData && typeof frameData === 'object') {
-      // 在Frame数据中查找图层名称
-      if (layerName in frameData) {
-        return frameData[layerName];
+    if (frameData) {
+      // 如果frameData是数组，直接返回数组（让后续逻辑处理索引）
+      if (Array.isArray(frameData)) {
+        return frameData;
       }
       
-      // 尝试路径查找
-      const pathValue = findValueByPath(frameData, path.slice(i), layerName);
-      if (pathValue !== null) {
-        return pathValue;
+      // 如果frameData是对象，在其中查找图层名称
+      if (typeof frameData === 'object') {
+        if (layerName in frameData) {
+          return frameData[layerName];
+        }
+        
+        // 尝试路径查找
+        const pathValue = findValueByPath(frameData, path.slice(i), layerName);
+        if (pathValue !== null) {
+          return pathValue;
+        }
       }
     }
   }

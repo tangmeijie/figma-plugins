@@ -56,6 +56,65 @@ npm run dev
 npm run watch
 ```
 
+### 📝 完整开发工作流
+
+**每次修改代码后的标准流程：**
+
+#### 1️⃣ 修改TypeScript代码
+```bash
+# 编辑源代码文件
+code plugins/fill-content-from-json/code.ts
+```
+
+#### 2️⃣ 重新编译
+```bash
+# 方法1: 使用npm脚本（推荐）
+npm run build
+
+# 方法2: 直接在插件目录编译
+cd plugins/fill-content-from-json
+npx tsc
+
+# 方法3: 使用监听模式（开发时推荐）
+npm run watch  # 自动监听变化并重新编译
+```
+
+#### 3️⃣ 在Figma中重新加载插件
+
+**重要提醒**: 📢 **编译完成后，必须在Figma中重新加载插件才能看到最新修改！**
+
+**快捷重载方式（推荐）**:
+- 按 `Cmd+Option+R` (Mac) 或 `Ctrl+Alt+R` (Windows)
+
+**手动重载方式**:
+1. 在Figma中，点击菜单 `Plugins` → `Development` → `Your Plugin Name`
+2. 或者右键点击插件图标 → `Restart`
+3. 或者关闭插件窗口后重新启动
+
+#### 4️⃣ 验证修改效果
+- 测试新功能是否正常工作
+- 检查控制台是否有错误信息
+- 确认预期的修改已生效
+
+### ⚡ 高效开发技巧
+
+**使用监听模式进行快速开发**:
+```bash
+# 1. 启动监听模式（在项目根目录）
+npm run watch
+
+# 2. 修改 TypeScript 代码
+# 3. 保存文件（自动触发编译）
+# 4. 在Figma中按 Cmd+Option+R 重新加载
+# 5. 重复步骤2-4进行迭代开发
+```
+
+**一键式开发流程**:
+```bash
+# 修改代码后的快速命令
+npm run build && echo "✅ 编译完成，请在Figma中按 Cmd+Option+R 重新加载插件"
+```
+
 ### 在Figma中添加插件
 
 插件运行需要以下**必需文件**在同一目录：
@@ -141,7 +200,19 @@ npm run watch
 
 **❌ 问题：代码修改后没有生效**
 - ✅ 解决：重新构建插件 (`npm run build`)
-- ✅ 解决：在Figma中重新加载插件 (Hot reload plugin)
+- ✅ 解决：在Figma中重新加载插件 (`Cmd+Option+R` 或 Hot reload plugin)
+- ✅ 检查：确认 `code.js` 文件的修改时间是最新的
+- ✅ 检查：编译过程中是否有错误信息
+
+**❌ 问题：忘记编译就在Figma中测试**
+- ✅ 提醒：**必须先编译** (`npm run build`) **再在Figma中重新加载**
+- ✅ 提醒：TypeScript源码 (`code.ts`) 修改后不会自动生效
+- ✅ 建议：使用 `npm run watch` 监听模式避免忘记编译
+
+**❌ 问题：不确定是否编译成功**
+- ✅ 检查：查看 `plugins/fill-content-from-json/code.js` 文件是否存在且为最新
+- ✅ 检查：编译命令是否有错误输出
+- ✅ 验证：`ls -la plugins/fill-content-from-json/code.js` 查看文件修改时间
 
 **❌ 问题：TypeScript编译错误**
 - ✅ 检查：`tsconfig.json` 配置是否正确
