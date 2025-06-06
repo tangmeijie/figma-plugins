@@ -158,23 +158,84 @@ async function fillSelectedFrames(): Promise<void> {
 }
 
 /**
+ * 递归查找匹配的Frame数据
+ */
+function findMatchingFrameData(node: SceneNode, data: JsonData): any {
+  // 首先检查当前节点名称是否匹配
+  if (data[node.name]) {
+    return data[node.name];
+  }
+  
+  // 如果当前节点没有匹配，递归查找子节点
+  if ('children' in node) {
+    for (const child of node.children) {
+      const childData = findMatchingFrameData(child, data);
+      if (childData !== null) {
+        return childData;
+      }
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * 收集同名文本节点
+ */
+function collectSameNameTextNodes(allTextNodes: TextNodeWithPath[], targetName: string): TextNode[] {
+  return allTextNodes
+    .filter(({node}) => node.name === targetName)
+    .map(({node}) => node);
+}
+
+/**
  * 处理单个节点，查找匹配的JSON数据
  */
 function processNode(node: SceneNode, data: JsonData): {
   textNodesWithValues: Array<{node: TextNode, value: string}>
 } {
   const textNodesWithValues: Array<{node: TextNode, value: string}> = [];
-  const frameName = node.name;
-  const frameData = data[frameName];
+  
+  // 递归查找匹配的Frame数据
+  const frameData = findMatchingFrameData(node, data);
   
   // 查找所有文本节点及其路径
   const textNodesWithPaths = findAllTextNodesWithPath(node);
   
+  // 创建一个用于跟踪已处理的同名节点的Map
+  const processedSameNameNodes = new Map<string, number>();
+  
   for (const {node: textNode, path} of textNodesWithPaths) {
+    const layerName = textNode.name;
     const jsonValue = findJsonValueForTextNode(textNode, path, frameData, data);
     
     if (jsonValue !== null) {
-      textNodesWithValues.push({node: textNode, value: String(jsonValue)});
+      // 检查是否为数组类型
+      if (Array.isArray(jsonValue)) {
+        // 收集同名的文本节点
+        const sameNameNodes = collectSameNameTextNodes(textNodesWithPaths, layerName);
+        
+        // 获取当前节点在同名节点中的索引
+        if (!processedSameNameNodes.has(layerName)) {
+          processedSameNameNodes.set(layerName, 0);
+        }
+        
+        const nodeIndex = processedSameNameNodes.get(layerName)!;
+        
+        // 如果数组中有对应索引的值，则使用该值
+        if (nodeIndex < jsonValue.length) {
+          textNodesWithValues.push({
+            node: textNode, 
+            value: String(jsonValue[nodeIndex])
+          });
+        }
+        
+        // 增加已处理的同名节点计数
+        processedSameNameNodes.set(layerName, nodeIndex + 1);
+      } else {
+        // 非数组类型，直接使用值
+        textNodesWithValues.push({node: textNode, value: String(jsonValue)});
+      }
     }
   }
   
