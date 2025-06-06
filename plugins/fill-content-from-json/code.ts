@@ -158,12 +158,38 @@ async function fillSelectedFrames(): Promise<void> {
 }
 
 /**
+ * 在JSON对象中递归查找匹配的键
+ */
+function findKeyInNestedJson(obj: any, targetKey: string): any {
+  // 直接检查当前对象是否有目标键
+  if (obj && typeof obj === 'object' && obj[targetKey]) {
+    return obj[targetKey];
+  }
+  
+  // 递归查找嵌套对象
+  if (obj && typeof obj === 'object') {
+    for (const key in obj) {
+      const value = obj[key];
+      if (value && typeof value === 'object') {
+        const result = findKeyInNestedJson(value, targetKey);
+        if (result !== null) {
+          return result;
+        }
+      }
+    }
+  }
+  
+  return null;
+}
+
+/**
  * 递归查找匹配的Frame数据
  */
 function findMatchingFrameData(node: SceneNode, data: JsonData): any {
-  // 首先检查当前节点名称是否匹配
-  if (data[node.name]) {
-    return data[node.name];
+  // 首先检查当前节点名称是否在JSON中存在
+  const directMatch = findKeyInNestedJson(data, node.name);
+  if (directMatch) {
+    return directMatch;
   }
   
   // 如果当前节点没有匹配，递归查找子节点
@@ -196,9 +222,6 @@ function processNode(node: SceneNode, data: JsonData): {
 } {
   const textNodesWithValues: Array<{node: TextNode, value: string}> = [];
   
-  // 递归查找匹配的Frame数据
-  const frameData = findMatchingFrameData(node, data);
-  
   // 查找所有文本节点及其路径
   const textNodesWithPaths = findAllTextNodesWithPath(node);
   
@@ -207,7 +230,9 @@ function processNode(node: SceneNode, data: JsonData): {
   
   for (const {node: textNode, path} of textNodesWithPaths) {
     const layerName = textNode.name;
-    const jsonValue = findJsonValueForTextNode(textNode, path, frameData, data);
+    
+    // 为每个文本节点尝试多种匹配策略
+    const jsonValue = findJsonValueForTextNodeAdvanced(textNode, path, data);
     
     if (jsonValue !== null) {
       // 检查是否为数组类型
@@ -243,7 +268,50 @@ function processNode(node: SceneNode, data: JsonData): {
 }
 
 /**
- * 为文本节点查找对应的JSON值
+ * 改进的文本节点JSON值查找函数
+ */
+function findJsonValueForTextNodeAdvanced(
+  textNode: TextNode, 
+  path: SceneNode[], 
+  rootData: JsonData
+): any {
+  const layerName = textNode.name;
+  
+  // 策略1: 在整个JSON中递归查找Frame名称，然后在该Frame数据中查找图层名称
+  for (let i = 1; i < path.length; i++) {  // 跳过第一个元素（根节点）
+    const frameName = path[i].name;
+    const frameData = findKeyInNestedJson(rootData, frameName);
+    
+    if (frameData && typeof frameData === 'object') {
+      // 在Frame数据中查找图层名称
+      if (layerName in frameData) {
+        return frameData[layerName];
+      }
+      
+      // 尝试路径查找
+      const pathValue = findValueByPath(frameData, path.slice(i), layerName);
+      if (pathValue !== null) {
+        return pathValue;
+      }
+    }
+  }
+  
+  // 策略2: 直接在整个JSON中查找图层名称
+  const directValue = findKeyInNestedJson(rootData, layerName);
+  if (directValue !== null) {
+    return directValue;
+  }
+  
+  // 策略3: 在顶层查找（向后兼容扁平结构）
+  if (layerName in rootData) {
+    return rootData[layerName];
+  }
+  
+  return null;
+}
+
+/**
+ * 为文本节点查找对应的JSON值（保留原函数以防需要）
  */
 function findJsonValueForTextNode(
   textNode: TextNode, 
@@ -283,6 +351,15 @@ function findJsonValueForTextNode(
  * 根据路径查找JSON值
  */
 function findValueByPath(frameData: any, path: SceneNode[], layerName: string): any {
+  if (!frameData || typeof frameData !== 'object') {
+    return null;
+  }
+  
+  // 如果path为空或只有一个元素，直接在frameData中查找layerName
+  if (path.length <= 1) {
+    return layerName in frameData ? frameData[layerName] : null;
+  }
+  
   // 移除第一个元素（Frame名称）并创建路径数组
   const pathParts = path.slice(1).map(node => node.name);
   pathParts.push(layerName);
