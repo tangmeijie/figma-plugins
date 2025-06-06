@@ -216,25 +216,29 @@ function collectSameNameTextNodes(allTextNodes: TextNodeWithPath[], targetName: 
 
 /**
  * 查找重复的容器节点（如多个Content）并为其分配索引
- * 这个函数解决了数组填充的核心问题：
- * 当有多个同名容器（如Content1, Content2...）时，
- * 按照它们在Figma文档中的顺序为其分配对应的JSON数组索引
+ * 改进版：只对同一父节点下的同名容器进行分组和排序
+ * 这样避免了不同层级的同名容器相互干扰
  */
 function findRepeatingContainers(textNodesWithPaths: TextNodeWithPath[]): Map<SceneNode, number> {
   const containerIndexMap = new Map<SceneNode, number>();
-  const containerNameCounts = new Map<string, SceneNode[]>();
+  // 使用 "父节点ID_容器名" 作为分组键，确保只有同一父节点下的同名容器才会被分组
+  const containerGroups = new Map<string, SceneNode[]>();
   
-  // 收集所有路径中的容器节点
+  // 收集所有路径中的容器节点，按父节点分组
   for (const {path} of textNodesWithPaths) {
     for (let i = 0; i < path.length - 1; i++) { // 排除文本节点本身
       const container = path[i];
       const containerName = container.name;
+      const parentId = container.parent ? container.parent.id : 'root';
       
-      if (!containerNameCounts.has(containerName)) {
-        containerNameCounts.set(containerName, []);
+      // 创建分组键：父节点ID + 容器名
+      const groupKey = `${parentId}_${containerName}`;
+      
+      if (!containerGroups.has(groupKey)) {
+        containerGroups.set(groupKey, []);
       }
       
-      const existingContainers = containerNameCounts.get(containerName)!;
+      const existingContainers = containerGroups.get(groupKey)!;
       if (!existingContainers.includes(container)) {
         existingContainers.push(container);
       }
@@ -242,48 +246,21 @@ function findRepeatingContainers(textNodesWithPaths: TextNodeWithPath[]): Map<Sc
   }
   
   // 为重复的容器分配索引
-  for (const [containerName, containers] of containerNameCounts) {
+  for (const [groupKey, containers] of containerGroups) {
     if (containers.length > 1) {
-      // 按照容器在文档中的顺序排序
-      containers.sort((a, b) => {
-        // 如果有共同的父节点，比较它们在父节点children中的位置
-        if (a.parent && b.parent && a.parent === b.parent && 'children' in a.parent) {
+
+      // 按照容器在文档中的顺序排序（现在都是同一父节点下的容器）
+      containers.sort((a: SceneNode, b: SceneNode) => {
+        // 由于按父节点分组，所有容器都有相同的父节点，直接使用children顺序
+        if (a.parent && 'children' in a.parent) {
           const children = a.parent.children;
           return children.indexOf(a) - children.indexOf(b);
         }
-        
-        // 如果没有共同父节点，通过遍历到根节点来比较位置
-        const getDocumentPath = (node: SceneNode): SceneNode[] => {
-          const path = [node];
-          let current = node.parent;
-          while (current && 'parent' in current && current.type !== 'PAGE') {
-            if ('type' in current) {
-              path.unshift(current as SceneNode);
-            }
-            current = current.parent;
-          }
-          return path;
-        };
-        
-        const pathA = getDocumentPath(a);
-        const pathB = getDocumentPath(b);
-        
-        // 找到第一个不同的节点并比较其位置
-        for (let i = 0; i < Math.min(pathA.length, pathB.length); i++) {
-          if (pathA[i] !== pathB[i]) {
-            const parent = i > 0 ? pathA[i - 1] : null;
-            if (parent && 'children' in parent) {
-              const children = parent.children;
-              return children.indexOf(pathA[i]) - children.indexOf(pathB[i]);
-            }
-          }
-        }
-        
         return 0;
       });
       
       // 分配索引
-      containers.forEach((container, index) => {
+      containers.forEach((container: SceneNode, index: number) => {
         containerIndexMap.set(container, index);
       });
     }
@@ -324,6 +301,7 @@ function processNode(node: SceneNode, data: JsonData): {
   const containerIndexMap = findRepeatingContainers(textNodesWithPaths);
   
 
+
   // 创建一个用于跟踪已处理的同名节点的Map（用于非数组情况）
   const processedSameNameNodes = new Map<string, number>();
   
@@ -342,14 +320,24 @@ function processNode(node: SceneNode, data: JsonData): {
             
 
             if (containerIndex !== null && containerIndex < jsonValue.length) {
-                        // 使用容器索引从数组中获取对应的对象
+                        // 使用容器索引从数组中获取对应的元素
               const arrayItem = jsonValue[containerIndex];
               
-              if (arrayItem && typeof arrayItem === 'object' && layerName in arrayItem) {
-                textNodesWithValues.push({
-                  node: textNode, 
-                  value: String(arrayItem[layerName])
-                });
+              if (arrayItem !== undefined) {
+                // 情况1: 字符串数组 - 直接使用数组元素
+                if (typeof arrayItem === 'string' || typeof arrayItem === 'number') {
+                  textNodesWithValues.push({
+                    node: textNode, 
+                    value: String(arrayItem)
+                  });
+                }
+                // 情况2: 对象数组 - 在对象中查找对应键
+                else if (typeof arrayItem === 'object' && arrayItem !== null && layerName in arrayItem) {
+                  textNodesWithValues.push({
+                    node: textNode, 
+                    value: String(arrayItem[layerName])
+                  });
+                }
               }
         } else {
           // 降级到原有的同名节点处理方式
@@ -360,10 +348,32 @@ function processNode(node: SceneNode, data: JsonData): {
           const nodeIndex = processedSameNameNodes.get(layerName)!;
           
           if (nodeIndex < jsonValue.length) {
-            textNodesWithValues.push({
-              node: textNode, 
-              value: String(jsonValue[nodeIndex])
-            });
+            const arrayItem = jsonValue[nodeIndex];
+            
+            // 降级逻辑也要处理不同类型的数组元素
+            if (arrayItem !== undefined) {
+              // 情况1: 字符串数组 - 直接使用数组元素
+              if (typeof arrayItem === 'string' || typeof arrayItem === 'number') {
+                textNodesWithValues.push({
+                  node: textNode, 
+                  value: String(arrayItem)
+                });
+              }
+              // 情况2: 对象数组 - 在对象中查找对应键
+              else if (typeof arrayItem === 'object' && arrayItem !== null && layerName in arrayItem) {
+                textNodesWithValues.push({
+                  node: textNode, 
+                  value: String(arrayItem[layerName])
+                });
+              }
+              // 情况3: 其他类型，尝试直接转换
+              else {
+                textNodesWithValues.push({
+                  node: textNode, 
+                  value: String(arrayItem)
+                });
+              }
+            }
           }
           
           processedSameNameNodes.set(layerName, nodeIndex + 1);
