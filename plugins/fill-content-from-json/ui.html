@@ -8,17 +8,38 @@
       padding: 20px;
     }
     
-    h2 {
-      margin-top: 0;
-      margin-bottom: 16px;
-      font-size: 16px;
-      font-weight: 600;
-    }
-    
     .container {
       display: flex;
       flex-direction: column;
       gap: 16px;
+    }
+    
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #E6E6E6;
+      margin-bottom: 16px;
+    }
+    
+    .tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      font-size: 14px;
+      color: #666;
+      transition: all 0.2s;
+    }
+    
+    .tab.active {
+      color: #18A0FB;
+      border-bottom-color: #18A0FB;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
     }
     
     .file-upload {
@@ -27,10 +48,41 @@
       gap: 8px;
     }
     
-    #fileStatus {
+    .text-input {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    #jsonTextarea {
+      width: 100%;
+      height: 120px;
+      padding: 8px;
+      border: 1px solid #E6E6E6;
+      border-radius: 4px;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 12px;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+    
+    #jsonTextarea:focus {
+      outline: none;
+      border-color: #18A0FB;
+    }
+    
+    #fileStatus, #textStatus {
       font-size: 12px;
       color: #666;
       margin: 4px 0;
+    }
+    
+    .status-error {
+      color: #F24822 !important;
+    }
+    
+    .status-success {
+      color: #14AE5C !important;
     }
     
     button {
@@ -56,17 +108,40 @@
     .input-file {
       margin-bottom: 8px;
     }
+    
+    .json-example {
+      font-size: 11px;
+      color: #888;
+      margin-top: 4px;
+    }
   </style>
 </head>
 
 <body>
   <div class="container">
-    <h2>Fill Content from JSON</h2>
     
-    <div class="file-upload">
-      <label for="jsonFile">选择JSON文件：</label>
-      <input type="file" id="jsonFile" accept=".json" class="input-file">
-      <div id="fileStatus">未选择文件</div>
+    <div class="tabs">
+      <div class="tab active" data-tab="file">文件导入</div>
+      <div class="tab" data-tab="text">文本输入</div>
+    </div>
+    
+    <div id="fileTab" class="tab-content active">
+      <div class="file-upload">
+        <label for="jsonFile">选择JSON文件：</label>
+        <input type="file" id="jsonFile" accept=".json" class="input-file">
+        <div id="fileStatus">未选择文件</div>
+      </div>
+    </div>
+    
+    <div id="textTab" class="tab-content">
+      <div class="text-input">
+        <label for="jsonTextarea">输入JSON数据：</label>
+        <textarea id="jsonTextarea" placeholder="请输入JSON格式的数据...&#10;&#10;示例：&#10;{&#10;  &quot;title&quot;: &quot;Hello World&quot;,&#10;  &quot;content&quot;: &quot;This is content&quot;&#10;}"></textarea>
+        <div id="textStatus">请输入JSON数据</div>
+        <div class="json-example">
+          支持嵌套结构和数组，图层名称需要与JSON键名匹配
+        </div>
+      </div>
     </div>
     
     <button id="fillButton" disabled>填充内容</button>
@@ -74,30 +149,121 @@
 
   <script>
     let jsonData = null;
-    const fileInput = document.getElementById('jsonFile');
-    const fileStatus = document.getElementById('fileStatus');
-    const fillButton = document.getElementById('fillButton');
+    let currentTab = 'file';
     
+    const fileInput = document.getElementById('jsonFile');
+    const jsonTextarea = document.getElementById('jsonTextarea');
+    const fileStatus = document.getElementById('fileStatus');
+    const textStatus = document.getElementById('textStatus');
+    const fillButton = document.getElementById('fillButton');
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    // 标签页切换
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabType = tab.dataset.tab;
+        switchTab(tabType);
+      });
+    });
+    
+    function switchTab(tabType) {
+      currentTab = tabType;
+      
+      // 更新标签页样式
+      tabs.forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.tab === tabType);
+      });
+      
+      // 更新内容区域
+      tabContents.forEach(content => {
+        content.classList.toggle('active', content.id === `${tabType}Tab`);
+      });
+      
+      // 清空当前数据并更新按钮状态
+      jsonData = null;
+      updateFillButtonState();
+    }
+    
+    // 验证JSON格式
+    function validateJson(text) {
+      if (!text.trim()) {
+        return { valid: false, error: '请输入JSON数据' };
+      }
+      
+      try {
+        const parsed = JSON.parse(text);
+        if (typeof parsed !== 'object' || parsed === null) {
+          return { valid: false, error: 'JSON必须是一个对象' };
+        }
+        return { valid: true, data: parsed };
+      } catch (error) {
+        const errorMsg = error.message.includes('position') 
+          ? 'JSON格式错误，请检查语法'
+          : `JSON解析错误: ${error.message}`;
+        return { valid: false, error: errorMsg };
+      }
+    }
+    
+    // 更新填充按钮状态
+    function updateFillButtonState() {
+      const hasValidData = jsonData !== null;
+      fillButton.disabled = !hasValidData;
+    }
+    
+    // 文件输入处理
     fileInput.onchange = async (event) => {
       const file = event.target.files[0];
       if (file) {
         try {
           const text = await file.text();
-          jsonData = JSON.parse(text);
-          fileStatus.textContent = `已加载: ${file.name}`;
-          fillButton.disabled = false;
+          const validation = validateJson(text);
+          
+          if (validation.valid) {
+            jsonData = validation.data;
+            fileStatus.textContent = `✓ 已加载: ${file.name}`;
+            fileStatus.className = 'status-success';
+          } else {
+            fileStatus.textContent = validation.error;
+            fileStatus.className = 'status-error';
+            jsonData = null;
+          }
         } catch (error) {
-          fileStatus.textContent = "JSON解析错误，请检查文件格式";
-          fillButton.disabled = true;
+          fileStatus.textContent = '文件读取失败';
+          fileStatus.className = 'status-error';
           jsonData = null;
         }
       } else {
-        fileStatus.textContent = "未选择文件";
-        fillButton.disabled = true;
+        fileStatus.textContent = '未选择文件';
+        fileStatus.className = '';
         jsonData = null;
       }
+      updateFillButtonState();
     };
     
+    // 文本输入处理
+    let textInputTimeout;
+    jsonTextarea.oninput = () => {
+      // 防抖处理，避免频繁验证
+      clearTimeout(textInputTimeout);
+      textInputTimeout = setTimeout(() => {
+        const text = jsonTextarea.value;
+        const validation = validateJson(text);
+        
+        if (validation.valid) {
+          jsonData = validation.data;
+          textStatus.textContent = '✓ JSON格式正确';
+          textStatus.className = 'status-success';
+        } else {
+          textStatus.textContent = validation.error;
+          textStatus.className = 'status-error';
+          jsonData = null;
+        }
+        updateFillButtonState();
+      }, 300);
+    };
+    
+    // 填充按钮点击处理
     fillButton.onclick = () => {
       if (jsonData) {
         parent.postMessage({ 

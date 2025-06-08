@@ -96,7 +96,7 @@ function hasSelection(): boolean {
 }
 
 // 显示插件UI
-figma.showUI(__html__, { width: 300, height: 320 });
+figma.showUI(__html__, { width: 300, height: 420 });
 
 // 存储导入的JSON数据
 let jsonData: JsonData | null = null;
