@@ -180,8 +180,54 @@
         content.classList.toggle('active', content.id === `${tabType}Tab`);
       });
       
-      // 清空当前数据并更新按钮状态
+      // 清空当前数据并重新验证当前标签的内容
       jsonData = null;
+      
+      // 根据当前标签重新验证内容
+      if (tabType === 'text') {
+        // 文本输入标签：检查textarea是否有内容
+        const text = jsonTextarea.value;
+        if (text.trim()) {
+          const validation = validateJson(text);
+          if (validation.valid) {
+            jsonData = validation.data;
+            textStatus.textContent = '✓ JSON格式正确';
+            textStatus.className = 'status-success';
+          } else {
+            textStatus.textContent = validation.error;
+            textStatus.className = 'status-error';
+          }
+        } else {
+          textStatus.textContent = '请输入JSON数据';
+          textStatus.className = '';
+        }
+      } else if (tabType === 'file') {
+        // 文件导入标签：检查是否有选中的文件
+        const file = fileInput.files[0];
+        if (file) {
+          // 重新读取和验证文件
+          file.text().then(text => {
+            const validation = validateJson(text);
+            if (validation.valid) {
+              jsonData = validation.data;
+              fileStatus.textContent = `✓ 已加载: ${file.name}`;
+              fileStatus.className = 'status-success';
+            } else {
+              fileStatus.textContent = validation.error;
+              fileStatus.className = 'status-error';
+            }
+            updateFillButtonState();
+          }).catch(() => {
+            fileStatus.textContent = '文件读取失败';
+            fileStatus.className = 'status-error';
+            updateFillButtonState();
+          });
+        } else {
+          fileStatus.textContent = '未选择文件';
+          fileStatus.className = '';
+        }
+      }
+      
       updateFillButtonState();
     }
     
